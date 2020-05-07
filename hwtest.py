@@ -1,13 +1,16 @@
 from os import scandir,listdir,remove
 from bs4 import BeautifulSoup
 import pickle 
-#from nltk.tokenize import word_tokenize
+from nltk.tokenize import word_tokenize
 #from nltk.stem import PorterStemmer 
 import json
 import re
 import operator
 import time
 #import math
+
+search_list = ['p','h1','h2','h3','h4','h5','h6','b',
+               'strong','i','em','mark','small','del','ins']
 
 def printGUI():
     print('First Milestone') 
@@ -60,12 +63,17 @@ class InvertedIndex:
         return max(self.words.items(),key=operator.itemgetter(1))[0]
                 
     def indexDoc(self,Document):
+        global search_list
         file = open(Document, 'r');
         data = json.load(file)
         #ps = PorterStemmer()
+        all_words = ''
         soup = BeautifulSoup(data['content'], "lxml");
+        for sentence in soup.find_all(text=True):
+            if sentence.parent.name in search_list:
+                all_words += sentence
         self.num_of_docs +=1
-        for word in re.findall('[a-zA-Z]+', soup.get_text().lower()):
+        for word in word_tokenize(all_words.lower()):
             #stem_word = ps.stem(word)
             if word in self.words:
                 self.words[word] += 1
@@ -73,8 +81,7 @@ class InvertedIndex:
                 self.words[word] = 1
                 
         if len(self.words) != 0:
-            index = self.word_Scores()
-            
+            index = self.word_Scores()    
             self.index.addToDict(index,Postings(self.idnum,self.words[index]).returnInfo())
             self.idnum += 1
             self.words = dict()
