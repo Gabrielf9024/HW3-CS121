@@ -121,7 +121,12 @@ if __name__ == '__main__':
     for file in list_of_files:
         if re.search('offloadedData',file) != None:
             data_file = open(file,'rb')
-            final_index.update(pickle.load(data_file))
+            file_dict = pickle.load(data_file)
+            for key in file_dict.keys():
+                if key in final_index:
+                    final_index[key].extend(file_dict[key])
+                else:
+                    final_index[key] = file_dict[key]
             data_file.close()
             remove(file)
             
