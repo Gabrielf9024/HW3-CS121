@@ -73,7 +73,7 @@ class InvertedIndex:
             if sentence.parent.name in search_list:
                 all_words += sentence
         self.num_of_docs +=1
-        for word in word_tokenize(all_words.lower()):
+        for word in re.findall('[a-zA-Z]+',all_words.lower()):
             #stem_word = ps.stem(word)
             if word in self.words:
                 self.words[word] += 1
@@ -81,8 +81,9 @@ class InvertedIndex:
                 self.words[word] = 1
                 
         if len(self.words) != 0:
-            index = self.word_Scores()    
-            self.index.addToDict(index,Postings(self.idnum,self.words[index]).returnInfo())
+            index = self.word_Scores()
+            new_data = Postings(self.idnum,self.words[index],data['url'])
+            self.index.addToDict(index,new_data)
             self.idnum += 1
             self.words = dict()
             if self.index.size() == 250:
@@ -96,10 +97,10 @@ class InvertedIndex:
 
 class Postings:
 
-    def __init__(self,docid, tfidf):
+    def __init__(self,docid, tfidf, url):
         self.docid = docid
         self.tfidf = tfidf
-        #self.url = url
+        self.url = url
 
     def returnInfo(self):
         return self.docid,self.tfidf
