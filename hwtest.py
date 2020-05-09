@@ -9,8 +9,10 @@ import operator
 import time
 #import math
 
-search_list = ['p','h1','h2','h3','h4','h5','h6','b',
-               'strong','i','em','mark','small','del','ins']
+search_list = {'p','h1','h2','h3','h4','h5','h6','b',
+               'strong','i','em','mark','small','del','ins'}
+exceptions = {'<DirEntry \'grape_ics_uci_edu\'>', '<DirEntry \'cbcl_ics_uci_edu\'>',
+                '<DirEntry \'mdogucu_ics_uci_edu\'>'}
 
 def printGUI():
     print('First Milestone') 
@@ -62,13 +64,13 @@ class InvertedIndex:
     def word_Scores(self):
         return max(self.words.items(),key=operator.itemgetter(1))[0]
                 
-    def indexDoc(self,Document):
+    def indexDocExcep(self,Document):
         global search_list
-        file = open(Document, 'r');
+        file = open(Document, 'r')
         data = json.load(file)
         #ps = PorterStemmer()
         all_words = ''
-        soup = BeautifulSoup(data['content'], "lxml");
+        soup = BeautifulSoup(data['content'], "lxml")
         for sentence in soup.find_all(text=True):
             if sentence.parent.name in search_list:
                 all_words += sentence
@@ -91,6 +93,36 @@ class InvertedIndex:
                 self.index.offloadData()
                 self.index.wipeDict()         
         file.close()
+
+    def indexDoc(self,Document):
+        global search_list
+        file = open(Document, 'r')
+        data = json.load(file)
+        soup = BeautifulSoup(data['content'], "lxml")
+        raw = soup.get_text()
+        all_tokens = word_tokenize(raw)
+
+        for t in all_tokens:
+            t = t.lower()
+            if re.match('^[a-zA-Z]+[a-z0-9]+$',t):
+                if t in self.words:
+                    self.words[t] += 1
+                else:
+                    self.words[t] = 1
+                
+        if len(self.words) != 0:
+            index = self.word_Scores()
+            new_data = Postings(self.idnum,self.words[index],data['url'])
+            self.index.addToDict(index,new_data)
+            self.idnum += 1
+            self.words = dict()
+            if self.index.size() == 250:
+                print('reached!')
+                self.index.offloadData()
+                self.index.wipeDict()         
+        file.close()
+
+
 
     def returnIndex(self):
         return self.index.returnDict()
@@ -116,8 +148,13 @@ if __name__ == '__main__':
     index = InvertedIndex(db)
     for directory in scandir(path):
         print(directory)
-        for file in scandir(directory): 
-            index.indexDoc(file)
+        if str(directory) not in exceptions:
+            for file in scandir(directory): 
+                index.indexDoc(file)
+        else:
+            print('excep')
+            for file in scandir(directory): 
+                index.indexDocExcep(file)
     print(' Final Index')
     file_name = 'offloadedData' + str(index.index.offload) + '.pkl'
     file = open(file_name,'wb')
