@@ -2,7 +2,18 @@ import pickle
 from hwtest import Postings
 import operator
 
-def ToFile():
+def ToFile():        
+    index = open('finalOutput.pkl', 'rb')
+    target = open('Index.txt', 'w')
+    dicts = pickle.load(index)
+
+    for key in dicts.keys():
+        target.write((key + ':' + str(dicts[key]) + '\n'))
+
+    index.close()
+    target.close()
+
+def PrettyToFile():
     def ListNewline(l: list(), tab = True) -> str:
         answer = ''
         for item in l:
@@ -12,7 +23,7 @@ def ToFile():
         return answer
             
     index = open('finalOutput.pkl', 'rb')
-    target = open('Index.txt', 'w')
+    target = open('PrettyIndex.txt', 'w')
     dicts = pickle.load(index)
 
     for key in dicts.keys():
@@ -23,3 +34,4 @@ def ToFile():
 
 if __name__ == '__main__':
     ToFile()
+    PrettyToFile()
