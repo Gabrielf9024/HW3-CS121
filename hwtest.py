@@ -134,6 +134,12 @@ class Postings:
         self.tfidf = tfidf
         self.url = url
 
+    def __repr__(self):
+        return 'Posting({docid}, {tfidf}, {url})'.format(docid = self.docid, tfidf = self.tfidf, url=self.url)
+
+    def __str__(self):
+        return 'DocID# {docid}\t|tf-idf: {tfidf}\t|url: {url}'.format(docid = self.docid, tfidf = self.tfidf, url=self.url)
+    
     def returnInfo(self):
         return self.docid,self.tfidf
 
