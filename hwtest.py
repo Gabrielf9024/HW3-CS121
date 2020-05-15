@@ -7,7 +7,8 @@ import json
 import re
 import operator
 import time
-#import math
+import sys
+import math
 
 search_list = {'p','h1','h2','h3','h4','h5','h6','b',
                'strong','i','em','mark','small','del','ins'}
@@ -49,7 +50,7 @@ class Database:
         file.close()
         
     def wipeDict(self):
-        self.data = dict()
+        self.data.clear()
 
 class InvertedIndex:
     def __init__(self,db):
@@ -61,8 +62,18 @@ class InvertedIndex:
     def __repr__(self):
         return str(self.index)
 
-    def word_Scores(self):
-        return max(self.words.items(),key=operator.itemgetter(1))[0]
+    def word_Scores(self, word):
+        dict_size = len(self.words)
+        tf = (self.words[word] / dict_size)
+        idf = 0
+        try:
+            idf = math.log((self.num_of_docs/len(self.index.returnDict()[word])))
+        except:
+            idf = math.log(self.num_of_docs/1)
+        finally:
+            tf_idf = tf * idf
+
+        return tf_idf
                 
     def indexDocExcep(self,Document):
         global search_list
@@ -81,14 +92,15 @@ class InvertedIndex:
                 self.words[word] += 1
             else:
                 self.words[word] = 1
-                
+    
         if len(self.words) != 0:
-            index = self.word_Scores()
-            new_data = Postings(self.idnum,self.words[index],data['url'])
-            self.index.addToDict(index,new_data)
+            for word in self.words.keys():
+                freqs = self.word_Scores(word)
+                new_data = Postings(self.idnum,freqs,data['url'])
+                self.index.addToDict(word,new_data)
             self.idnum += 1
-            self.words = dict()
-            if self.index.size() == 250:
+            self.words.clear()
+            if sys.getsizeof(self.index.returnDict()) >= 5000000:
                 print('reached!')
                 self.index.offloadData()
                 self.index.wipeDict()         
@@ -101,7 +113,7 @@ class InvertedIndex:
         soup = BeautifulSoup(data['content'], "lxml")
         raw = soup.get_text()
         all_tokens = word_tokenize(raw)
-
+        self.num_of_docs +=1
         for t in all_tokens:
             t = t.lower()
             if re.match('^[a-zA-Z]+[a-z0-9]+$',t):
@@ -111,12 +123,13 @@ class InvertedIndex:
                     self.words[t] = 1
                 
         if len(self.words) != 0:
-            index = self.word_Scores()
-            new_data = Postings(self.idnum,self.words[index],data['url'])
-            self.index.addToDict(index,new_data)
+            for word in self.words.keys():
+                freqs = self.word_Scores(word)
+                new_data = Postings(self.idnum,freqs,data['url'])
+                self.index.addToDict(word,new_data)
             self.idnum += 1
-            self.words = dict()
-            if self.index.size() == 250:
+            self.words.clear()
+            if sys.getsizeof(self.index.returnDict()) >= 5000000:
                 print('reached!')
                 self.index.offloadData()
                 self.index.wipeDict()         
@@ -139,9 +152,12 @@ class Postings:
 
     def __str__(self):
         return 'DocID# {docid}\t|tf-idf: {tfidf}\t|url: {url}'.format(docid = self.docid, tfidf = self.tfidf, url=self.url)
-    
+
     def returnInfo(self):
         return self.docid,self.tfidf
+
+    def getTFIDF(self):
+        return self.tfidf
 
     #def returnUrl(self):
         #return self.url
