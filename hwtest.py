@@ -75,37 +75,6 @@ class InvertedIndex:
 
         return tf_idf
                 
-    def indexDocExcep(self,Document):
-        global search_list
-        file = open(Document, 'r')
-        data = json.load(file)
-        #ps = PorterStemmer()
-        all_words = ''
-        soup = BeautifulSoup(data['content'], "lxml")
-        for sentence in soup.find_all(text=True):
-            if sentence.parent.name in search_list:
-                all_words += sentence
-        self.num_of_docs +=1
-        for word in re.findall('[a-zA-Z]+',all_words.lower()):
-            #stem_word = ps.stem(word)
-            if word in self.words:
-                self.words[word] += 1
-            else:
-                self.words[word] = 1
-    
-        if len(self.words) != 0:
-            for word in self.words.keys():
-                freqs = self.word_Scores(word)
-                new_data = Postings(self.idnum,freqs,data['url'])
-                self.index.addToDict(word,new_data)
-            self.idnum += 1
-            self.words.clear()
-            if sys.getsizeof(self.index.returnDict()) >= 5000000:
-                print('reached!')
-                self.index.offloadData()
-                self.index.wipeDict()         
-        file.close()
-
     def indexDoc(self,Document):
         global search_list
         file = open(Document, 'r')
@@ -116,7 +85,7 @@ class InvertedIndex:
         self.num_of_docs +=1
         for t in all_tokens:
             t = t.lower()
-            if re.match('^[a-zA-Z]+[a-z0-9]+$',t):
+            if re.search("(?:[a-zA-Z]+['-][a-zA-Z]+)|([a-zA-Z]+)", t):
                 if t in self.words:
                     self.words[t] += 1
                 else:
@@ -170,13 +139,8 @@ if __name__ == '__main__':
     index = InvertedIndex(db)
     for directory in scandir(path):
         print(directory)
-        if str(directory) not in exceptions:
-            for file in scandir(directory): 
-                index.indexDoc(file)
-        else:
-            print('excep')
-            for file in scandir(directory): 
-                index.indexDocExcep(file)
+        for file in scandir(directory): 
+            index.indexDoc(file)
     print(' Final Index')
     file_name = 'offloadedData' + str(index.index.offload) + '.pkl'
     file = open(file_name,'wb')
